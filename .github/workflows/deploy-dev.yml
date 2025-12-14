@@ -13,6 +13,20 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
+    - name: Fix Docker Socket Permissions
+      run: |
+        # Try to fix permissions (might fail if no sudo access, but worth trying)
+        sudo chmod 666 /var/run/docker.sock || true
+
+    - name: Debug System Info (Help for Troubleshooting)
+      run: |
+        echo "=== User Info ==="
+        id
+        echo "=== Docker Socket Info ==="
+        ls -l /var/run/docker.sock || echo "Socket not found"
+        echo "=== Docker Version Check ==="
+        docker version || echo "Docker not accessible"
+
     - name: Deploy to Dev Environment (Docker)
       working-directory: ./
       run: |
