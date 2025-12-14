@@ -133,7 +133,7 @@
           <h3 class="text-xl font-bold text-white">Bukti Transfer</h3>
           <button @click="showProofModal = false" class="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
-        <img :src="'http://localhost:8080' + currentProof" class="w-full rounded-xl" alt="Bukti Transfer">
+        <img :src="'http://localhost:8081' + currentProof" class="w-full rounded-xl" alt="Bukti Transfer">
       </div>
     </div>
 

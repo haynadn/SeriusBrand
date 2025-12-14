@@ -13,42 +13,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.24'
-
-    - name: Build Backend (Prod)
-      working-directory: ./backend
+    - name: Deploy to Production Environment (Docker)
+      working-directory: ./
       run: |
-        go mod tidy
-        go build -o server-prod cmd/server/main.go
+        # Create uploads directory if not exists
+        mkdir -p backend/uploads
 
-    - name: Setup Node
-      uses: actions/setup-node@v3
-      with:
-        node-version: '20'
-
-    - name: Build Frontend (Prod)
-      working-directory: ./frontend
-      run: |
-        npm install
-        npm run build
-    
-    - name: Deploy to Prod Folder
-      run: |
-        # Stop existing prod service
-        # sudo systemctl stop brand-umkm-prod || true
+        # Build and Run with Docker Compose
+        docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
         
-        # Copy backend binary
-        mkdir -p /home/adnan/apps/brand-umkm-prod/backend
-        cp backend/server-prod /home/adnan/apps/brand-umkm-prod/backend/server
-        
-        # Copy frontend build
-        mkdir -p /home/adnan/apps/brand-umkm-prod/frontend
-        cp -r frontend/dist /home/adnan/apps/brand-umkm-prod/frontend/
-        
-        # Restart service
-        # sudo systemctl restart brand-umkm-prod
-        
-        echo "Deployed to Production Environment"
+        # Clean up unused images
+        docker image prune -f

@@ -239,7 +239,7 @@
             <div class="aspect-video bg-slate-800 relative overflow-hidden">
                <video 
                 v-if="page.video_url" 
-                :src="'http://localhost:8080' + page.video_url" 
+                :src="'http://localhost:8081' + page.video_url" 
                 class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                 muted
                 loop
