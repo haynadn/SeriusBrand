@@ -1,0 +1,18 @@
+# Backend
+backend/server
+backend/.env
+backend/uploads/
+backend/go.sum # Optional: some prefer to commit go.sum, generally recommended to commit it. Let's keep it.
+!backend/go.sum
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.DS_Store
+.DS_Store
+
+# Editor
+.vscode/
+.idea/

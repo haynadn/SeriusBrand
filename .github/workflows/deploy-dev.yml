@@ -1,0 +1,55 @@
+name: Deploy Dev
+
+on:
+  push:
+    branches: [ "dev" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted # Menggunakan runner di VPS
+    environment: development
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Build Backend (Dev)
+      working-directory: ./backend
+      run: |
+        go mod tidy
+        go build -o server-dev cmd/server/main.go
+
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Build Frontend (Dev)
+      working-directory: ./frontend
+      run: |
+        npm install
+        npm run build
+    
+    - name: Deploy to Dev Folder
+      run: |
+        # Stop existing dev service if running (using systemd example)
+        # sudo systemctl stop brand-umkm-dev || true
+        
+        # Copy backend binary to dev location
+        mkdir -p /home/adnan/apps/brand-umkm-dev/backend
+        cp backend/server-dev /home/adnan/apps/brand-umkm-dev/backend/server
+        cp backend/.env.example /home/adnan/apps/brand-umkm-dev/backend/.env # Note: You should manage secrets better!
+        
+        # Copy frontend build
+        mkdir -p /home/adnan/apps/brand-umkm-dev/frontend
+        cp -r frontend/dist /home/adnan/apps/brand-umkm-dev/frontend/
+        
+        # Restart service
+        # sudo systemctl restart brand-umkm-dev
+        
+        echo "Deployed to Dev Environment"

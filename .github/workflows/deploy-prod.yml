@@ -1,0 +1,54 @@
+name: Deploy Prod
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted # Menggunakan runner di VPS (Production Runner or same runner with logic)
+    environment: production
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24'
+
+    - name: Build Backend (Prod)
+      working-directory: ./backend
+      run: |
+        go mod tidy
+        go build -o server-prod cmd/server/main.go
+
+    - name: Setup Node
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20'
+
+    - name: Build Frontend (Prod)
+      working-directory: ./frontend
+      run: |
+        npm install
+        npm run build
+    
+    - name: Deploy to Prod Folder
+      run: |
+        # Stop existing prod service
+        # sudo systemctl stop brand-umkm-prod || true
+        
+        # Copy backend binary
+        mkdir -p /home/adnan/apps/brand-umkm-prod/backend
+        cp backend/server-prod /home/adnan/apps/brand-umkm-prod/backend/server
+        
+        # Copy frontend build
+        mkdir -p /home/adnan/apps/brand-umkm-prod/frontend
+        cp -r frontend/dist /home/adnan/apps/brand-umkm-prod/frontend/
+        
+        # Restart service
+        # sudo systemctl restart brand-umkm-prod
+        
+        echo "Deployed to Production Environment"

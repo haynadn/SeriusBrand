@@ -1,0 +1,188 @@
+package handlers
+
+import (
+	"fmt"
+	"net/http"
+	"path/filepath"
+	"seriusbrand/backend/internal/models"
+	"time"
+
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+)
+
+type Handler struct {
+	DB *gorm.DB
+}
+
+func NewHandler(db *gorm.DB) *Handler {
+	return &Handler{DB: db}
+}
+
+// CreateOrder creates a new order
+func (h *Handler) CreateOrder(c *gin.Context) {
+	var req struct {
+		CustomerName string `json:"customer_name" binding:"required"`
+		Whatsapp     string `json:"whatsapp" binding:"required"`
+		ProductName  string `json:"product_name" binding:"required"`
+		PackageType  string `json:"package_type" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Calculate price based on package
+	price := 10000
+	switch req.PackageType {
+	case "starter":
+		price = 10000
+	case "growth":
+		price = 25000
+	case "pro":
+		price = 50000
+	}
+
+	order := models.Order{
+		CustomerName: req.CustomerName,
+		Whatsapp:     req.Whatsapp,
+		ProductName:  req.ProductName,
+		PackageType:  req.PackageType,
+		Price:        price,
+		Status:       "pending",
+	}
+
+	if err := h.DB.Create(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create order"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, order)
+}
+
+// UploadPaymentProof uploads payment proof for an order
+func (h *Handler) UploadPaymentProof(c *gin.Context) {
+	orderID := c.Param("id")
+
+	file, err := c.FormFile("payment_proof")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
+		return
+	}
+
+	// Generate unique filename
+	ext := filepath.Ext(file.Filename)
+	filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().Unix(), ext)
+	filepath := fmt.Sprintf("./uploads/proofs/%s", filename)
+
+	// Save file
+	if err := c.SaveUploadedFile(file, filepath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+
+	// Update order
+	fileURL := fmt.Sprintf("/uploads/proofs/%s", filename)
+	if err := h.DB.Model(&models.Order{}).Where("id = ?", orderID).Update("payment_proof_url", fileURL).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update order"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Payment proof uploaded", "file_url": fileURL})
+}
+
+// ListOrders lists all orders (admin)
+func (h *Handler) ListOrders(c *gin.Context) {
+	var orders []models.Order
+	if err := h.DB.Order("created_at DESC").Find(&orders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch orders"})
+		return
+	}
+
+	c.JSON(http.StatusOK, orders)
+}
+
+// UpdateOrderStatus updates order status (admin)
+func (h *Handler) UpdateOrderStatus(c *gin.Context) {
+	orderID := c.Param("id")
+
+	var req struct {
+		Status string `json:"status" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := h.DB.Model(&models.Order{}).Where("id = ?", orderID).Update("status", req.Status).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update order"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Order status updated"})
+}
+
+// GetUmkmPage gets UMKM page by slug
+func (h *Handler) GetUmkmPage(c *gin.Context) {
+	slug := c.Param("slug")
+
+	var page models.UmkmPage
+	if err := h.DB.Where("slug = ?", slug).First(&page).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Page not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, page)
+}
+
+// CreateUmkmPage creates a new UMKM page (admin)
+func (h *Handler) CreateUmkmPage(c *gin.Context) {
+	var req struct {
+		OrderID         uint   `json:"order_id" binding:"required"`
+		Slug            string `json:"slug" binding:"required"`
+		VideoURL        string `json:"video_url"`
+		Photos          string `json:"photos"`
+		Description     string `json:"description"`
+		Price           string `json:"price"`
+		WhatsappLink    string `json:"whatsapp_link"`
+		MarketplaceLink string `json:"marketplace_link"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	page := models.UmkmPage{
+		OrderID:         req.OrderID,
+		Slug:            req.Slug,
+		VideoURL:        req.VideoURL,
+		Photos:          req.Photos,
+		Description:     req.Description,
+		Price:           req.Price,
+		WhatsappLink:    req.WhatsappLink,
+		MarketplaceLink: req.MarketplaceLink,
+	}
+
+	if err := h.DB.Create(&page).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create page"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, page)
+}
+
+// ListUmkmPages lists all UMKM pages (public)
+func (h *Handler) ListUmkmPages(c *gin.Context) {
+	var pages []models.UmkmPage
+	// Preload the Order to get the product name if needed, but for now just fetching pages
+	if err := h.DB.Order("created_at DESC").Find(&pages).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch pages"})
+		return
+	}
+
+	c.JSON(http.StatusOK, pages)
+}
