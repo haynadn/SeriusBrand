@@ -29,6 +29,14 @@
         </div>
       </form>
     </div>
+
+    <!-- Loading Modal -->
+    <div v-if="isLoading" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+      <div class="bg-white p-6 rounded-2xl shadow-xl flex flex-col items-center">
+        <div class="animate-spin w-10 h-10 border-4 border-green-500 border-t-transparent rounded-full mb-3"></div>
+        <p class="text-gray-700 font-semibold">Sedang masuk...</p>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -41,8 +49,12 @@ const router = useRouter()
 const username = ref('')
 const password = ref('')
 const error = ref('')
+const isLoading = ref(false)
 
 const handleLogin = async () => {
+  isLoading.value = true
+  error.value = ''
+  
   try {
     const response = await api.post('/login', {
       username: username.value,
@@ -56,6 +68,8 @@ const handleLogin = async () => {
     router.push('/admin')
   } catch (err) {
     error.value = err.response?.data?.error || 'Login failed'
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
