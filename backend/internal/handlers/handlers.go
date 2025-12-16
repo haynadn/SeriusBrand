@@ -3,6 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"seriusbrand/backend/internal/models"
 	"time"
@@ -75,10 +76,17 @@ func (h *Handler) UploadPaymentProof(c *gin.Context) {
 	// Generate unique filename
 	ext := filepath.Ext(file.Filename)
 	filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().Unix(), ext)
-	filepath := fmt.Sprintf("./uploads/proofs/%s", filename)
+	uploadDir := "./uploads/proofs"
+	savePath := fmt.Sprintf("%s/%s", uploadDir, filename)
+
+	// Ensure directory exists
+	if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+		return
+	}
 
 	// Save file
-	if err := c.SaveUploadedFile(file, filepath); err != nil {
+	if err := c.SaveUploadedFile(file, savePath); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
 		return
 	}

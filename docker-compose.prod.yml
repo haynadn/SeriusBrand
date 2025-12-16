@@ -32,6 +32,8 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        VITE_API_BASE_URL: "http://103.150.93.10:8081/api"
     container_name: seriusbrand-frontend-prod
     ports:
       - "80:80" # Map host 80 to container 80
