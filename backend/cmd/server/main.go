@@ -63,6 +63,7 @@ func main() {
 		admin.GET("/orders", h.ListOrders)
 		admin.PATCH("/orders/:id", h.UpdateOrderStatus)
 		admin.POST("/umkm", h.CreateUmkmPage)
+		admin.PUT("/umkm/:id", h.UpdateUmkmPage)
 	}
 
 	// Serve uploaded files

@@ -116,13 +116,23 @@
                   <span v-else class="text-gray-500 text-sm">Belum ada</span>
                 </td>
                 <td class="px-6 py-4">
-                  <button 
-                    @click="createUmkmPage(order)"
-                    :disabled="order.status !== 'paid'"
-                    class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:cursor-not-allowed"
-                  >
-                    Buat Halaman
-                  </button>
+                  <div class="flex gap-2">
+                    <button 
+                      v-if="order.status === 'completed'"
+                      @click="editUmkmPage(order)"
+                      class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all"
+                    >
+                      Edit Page
+                    </button>
+                    <button 
+                      v-else
+                      @click="createUmkmPage(order)"
+                      :disabled="order.status !== 'paid'"
+                      class="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 disabled:from-gray-600 disabled:to-gray-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all disabled:cursor-not-allowed"
+                    >
+                      Buat Halaman
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -146,7 +156,7 @@
     <div v-if="showCreateModal" @click="showCreateModal = false" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-6">
       <div @click.stop class="bg-slate-900 rounded-3xl p-8 max-w-2xl w-full border border-slate-700 max-h-[90vh] overflow-y-auto">
         <div class="flex justify-between items-center mb-6">
-          <h3 class="text-2xl font-bold text-white">Buat Halaman UMKM</h3>
+          <h3 class="text-2xl font-bold text-white">{{ isEditing ? 'Edit Halaman UMKM' : 'Buat Halaman UMKM' }}</h3>
           <button @click="showCreateModal = false" class="text-gray-400 hover:text-white text-2xl">×</button>
         </div>
 
@@ -191,7 +201,7 @@
           </div>
 
           <button type="submit" :disabled="submitting" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 disabled:from-gray-600 disabled:to-gray-700 text-white py-4 rounded-xl font-bold text-lg transition-all">
-            {{ submitting ? 'Membuat...' : 'Buat Halaman UMKM' }}
+            {{ submitting ? 'Menyimpan...' : (isEditing ? 'Simpan Perubahan' : 'Buat Halaman UMKM') }}
           </button>
         </form>
       </div>
@@ -212,6 +222,9 @@ const currentProof = ref('')
 const showCreateModal = ref(false)
 const submitting = ref(false)
 const selectedOrder = ref(null)
+const isEditing = ref(false)
+const currentUmkmId = ref(null)
+const umkmPagesMap = ref({})
 
 const umkmForm = ref({
   order_id: 0,
@@ -230,6 +243,7 @@ const stats = computed(() => ({
 
 onMounted(async () => {
   await fetchOrders()
+  await fetchUmkmPages()
 })
 
 async function fetchOrders() {
@@ -241,6 +255,21 @@ async function fetchOrders() {
     alert('Gagal memuat data pesanan')
   } finally {
     loading.value = false
+  }
+}
+
+async function fetchUmkmPages() {
+  try {
+    const response = await api.get('/umkm')
+    const pages = response.data || []
+    // Create map of order_id -> page
+    const map = {}
+    pages.forEach(page => {
+      map[page.order_id] = page
+    })
+    umkmPagesMap.value = map
+  } catch (error) {
+    console.error('Failed to fetch pages:', error)
   }
 }
 
@@ -269,10 +298,39 @@ function getProofUrl(path) {
 }
 
 function createUmkmPage(order) {
+  isEditing.value = false
+  currentUmkmId.value = null
   selectedOrder.value = order
-  umkmForm.value.order_id = order.id
-  umkmForm.value.slug = order.product_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-  umkmForm.value.whatsapp_link = `https://wa.me/${order.whatsapp.replace(/^0/, '62')}`
+  
+  umkmForm.value = {
+    order_id: order.id,
+    slug: order.product_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
+    description: '',
+    price: '',
+    whatsapp_link: `https://wa.me/${order.whatsapp.replace(/^0/, '62')}`,
+    marketplace_link: ''
+  }
+  
+  showCreateModal.value = true
+}
+
+function editUmkmPage(order) {
+  const page = umkmPagesMap.value[order.id]
+  if (!page) return
+
+  isEditing.value = true
+  currentUmkmId.value = page.id
+  selectedOrder.value = order
+
+  umkmForm.value = {
+    order_id: order.id,
+    slug: page.slug,
+    description: page.description,
+    price: page.price,
+    whatsapp_link: page.whatsapp_link,
+    marketplace_link: page.marketplace_link
+  }
+
   showCreateModal.value = true
 }
 
@@ -301,24 +359,33 @@ async function submitUmkmPage() {
       formData.append('video_file', videoFile.value)
     }
 
-    await api.post('/admin/umkm', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    if (isEditing.value) {
+      await api.put(`/admin/umkm/${currentUmkmId.value}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      alert('Halaman UMKM berhasil diperbarui!')
+    } else {
+      await api.post('/admin/umkm', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      alert('Halaman UMKM berhasil dibuat!')
+    }
     
-    alert('Halaman UMKM berhasil dibuat!')
     showCreateModal.value = false
     
-    // Update order status to completed
-    await updateOrderStatus(selectedOrder.value.id, 'completed')
+    // Update order status to completed if creating
+    if (!isEditing.value) {
+      await updateOrderStatus(selectedOrder.value.id, 'completed')
+    }
+    
     await fetchOrders()
+    await fetchUmkmPages()
     
     // Reset form
     videoFile.value = null
   } catch (error) {
-    console.error('Failed to create UMKM page:', error)
-    alert('Gagal membuat halaman UMKM')
+    console.error('Failed to save UMKM page:', error)
+    alert('Gagal menyimpan halaman UMKM')
   } finally {
     submitting.value = false
   }

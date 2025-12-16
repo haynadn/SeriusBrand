@@ -205,6 +205,76 @@ func (h *Handler) CreateUmkmPage(c *gin.Context) {
 	c.JSON(http.StatusCreated, page)
 }
 
+// UpdateUmkmPage updates an existing UMKM page (admin)
+func (h *Handler) UpdateUmkmPage(c *gin.Context) {
+	pageID := c.Param("id")
+
+	var req struct {
+		Slug            string `form:"slug"`
+		Photos          string `form:"photos"`
+		Description     string `form:"description"`
+		Price           string `form:"price"`
+		WhatsappLink    string `form:"whatsapp_link"`
+		MarketplaceLink string `form:"marketplace_link"`
+	}
+
+	if err := c.ShouldBind(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Find existing page
+	var page models.UmkmPage
+	if err := h.DB.First(&page, pageID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Page not found"})
+		return
+	}
+
+	// Handle video upload if provided
+	file, err := c.FormFile("video_file")
+	if err == nil {
+		// Generate unique filename
+		ext := filepath.Ext(file.Filename)
+		filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().Unix(), ext)
+		uploadDir := "./uploads/videos"
+		savePath := fmt.Sprintf("%s/%s", uploadDir, filename)
+
+		// Ensure directory exists
+		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+			return
+		}
+
+		// Save new file
+		if err := c.SaveUploadedFile(file, savePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save video file"})
+			return
+		}
+
+		// Update video URL
+		page.VideoURL = fmt.Sprintf("/uploads/videos/%s", filename)
+	}
+
+	// Update other fields
+	page.Slug = req.Slug
+	page.Description = req.Description
+	page.Price = req.Price
+	page.WhatsappLink = req.WhatsappLink
+	page.MarketplaceLink = req.MarketplaceLink
+
+	// Only update photos if provided and valid JSON
+	if req.Photos != "" && req.Photos != "[]" {
+		page.Photos = req.Photos
+	}
+
+	if err := h.DB.Save(&page).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update page"})
+		return
+	}
+
+	c.JSON(http.StatusOK, page)
+}
+
 // ListUmkmPages lists all UMKM pages (public)
 func (h *Handler) ListUmkmPages(c *gin.Context) {
 	var pages []models.UmkmPage
