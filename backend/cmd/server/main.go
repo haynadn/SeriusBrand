@@ -43,17 +43,22 @@ func main() {
 	// Initialize handlers
 	h := handlers.NewHandler(database)
 
+	// Seed default admin user (Task: Implement Admin Auth)
+	h.SeedAdminUser()
+
 	// Public routes
 	api := r.Group("/api")
 	{
+		api.POST("/login", h.Login) // New Login Endpoint
 		api.POST("/orders", h.CreateOrder)
 		api.POST("/orders/:id/proof", h.UploadPaymentProof)
 		api.GET("/umkm/:slug", h.GetUmkmPage)
 		api.GET("/umkm", h.ListUmkmPages)
 	}
 
-	// Admin routes (no auth for now, can add later)
+	// Admin routes (Protected by Middleware)
 	admin := r.Group("/api/admin")
+	admin.Use(handlers.AuthMiddleware()) // Apply Middleware
 	{
 		admin.GET("/orders", h.ListOrders)
 		admin.PATCH("/orders/:id", h.UpdateOrderStatus)

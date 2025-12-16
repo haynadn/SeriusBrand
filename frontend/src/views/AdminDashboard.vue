@@ -5,9 +5,14 @@
       <div class="container mx-auto px-6 py-4">
         <div class="flex justify-between items-center">
           <h1 class="text-2xl font-bold text-white">SeriusBrand Admin</h1>
-          <router-link to="/" class="text-gray-300 hover:text-white transition-all">
-            ← Kembali ke Beranda
-          </router-link>
+          <div class="flex items-center gap-4">
+            <router-link to="/" class="text-gray-300 hover:text-white transition-all">
+              ← Kembali ke Beranda
+            </router-link>
+            <button @click="logout" class="bg-red-500/20 hover:bg-red-500/40 text-red-300 border border-red-500/50 px-4 py-2 rounded-lg text-sm transition-all">
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -190,8 +195,10 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api'
 
+const router = useRouter()
 const orders = ref([])
 const loading = ref(true)
 const showProofModal = ref(false)
