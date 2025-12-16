@@ -6,7 +6,7 @@ services:
     ports:
       - "8081:8081" # Map host 8081 to container 8081
     volumes:
-      - ./backend/uploads:/app/uploads
+      - /home/adnan13/seriusbrand-uploads:/app/uploads
     environment:
       - PORT=8081
       - DB_HOST=db
