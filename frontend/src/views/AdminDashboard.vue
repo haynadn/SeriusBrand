@@ -160,8 +160,14 @@
           </div>
 
           <div>
-            <label class="block text-white font-semibold mb-2">URL Video</label>
-            <input v-model="umkmForm.video_url" class="w-full px-4 py-3 bg-slate-800 text-white rounded-xl border border-slate-700 focus:border-blue-500 focus:outline-none" placeholder="/uploads/videos/product.mp4">
+            <label class="block text-white font-semibold mb-2">Upload Video Produk</label>
+            <input 
+              type="file" 
+              accept="video/*"
+              @change="handleVideoFileChange"
+              class="w-full px-4 py-3 bg-slate-800 text-white rounded-xl border border-slate-700 focus:border-blue-500 focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700"
+            >
+            <p class="text-gray-400 text-xs mt-1">Format: MP4, WebM (Max. 50MB)</p>
           </div>
 
           <div>
@@ -210,12 +216,10 @@ const selectedOrder = ref(null)
 const umkmForm = ref({
   order_id: 0,
   slug: '',
-  video_url: '',
   description: '',
   price: '',
   whatsapp_link: '',
-  marketplace_link: '',
-  photos: '[]'
+  marketplace_link: ''
 })
 
 const stats = computed(() => ({
@@ -272,16 +276,46 @@ function createUmkmPage(order) {
   showCreateModal.value = true
 }
 
+const videoFile = ref(null)
+
+function handleVideoFileChange(event) {
+  const file = event.target.files[0]
+  if (file) {
+    videoFile.value = file
+  }
+}
+
 async function submitUmkmPage() {
   submitting.value = true
   try {
-    await api.post('/admin/umkm', umkmForm.value)
+    const formData = new FormData()
+    formData.append('order_id', umkmForm.value.order_id)
+    formData.append('slug', umkmForm.value.slug)
+    formData.append('description', umkmForm.value.description)
+    formData.append('price', umkmForm.value.price)
+    formData.append('whatsapp_link', umkmForm.value.whatsapp_link)
+    formData.append('marketplace_link', umkmForm.value.marketplace_link)
+    formData.append('photos', '[]') // Or handle photos upload later
+
+    if (videoFile.value) {
+      formData.append('video_file', videoFile.value)
+    }
+
+    await api.post('/admin/umkm', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    
     alert('Halaman UMKM berhasil dibuat!')
     showCreateModal.value = false
     
     // Update order status to completed
     await updateOrderStatus(selectedOrder.value.id, 'completed')
     await fetchOrders()
+    
+    // Reset form
+    videoFile.value = null
   } catch (error) {
     console.error('Failed to create UMKM page:', error)
     alert('Gagal membuat halaman UMKM')

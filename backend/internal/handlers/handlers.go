@@ -149,25 +149,47 @@ func (h *Handler) GetUmkmPage(c *gin.Context) {
 // CreateUmkmPage creates a new UMKM page (admin)
 func (h *Handler) CreateUmkmPage(c *gin.Context) {
 	var req struct {
-		OrderID         uint   `json:"order_id" binding:"required"`
-		Slug            string `json:"slug" binding:"required"`
-		VideoURL        string `json:"video_url"`
-		Photos          string `json:"photos"`
-		Description     string `json:"description"`
-		Price           string `json:"price"`
-		WhatsappLink    string `json:"whatsapp_link"`
-		MarketplaceLink string `json:"marketplace_link"`
+		OrderID         uint   `form:"order_id" binding:"required"`
+		Slug            string `form:"slug" binding:"required"`
+		Photos          string `form:"photos"`
+		Description     string `form:"description"`
+		Price           string `form:"price"`
+		WhatsappLink    string `form:"whatsapp_link"`
+		MarketplaceLink string `form:"marketplace_link"`
 	}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
+	if err := c.ShouldBind(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	videoURL := ""
+	file, err := c.FormFile("video_file")
+	if err == nil {
+		// Generate unique filename
+		ext := filepath.Ext(file.Filename)
+		filename := fmt.Sprintf("%s_%d%s", uuid.New().String(), time.Now().Unix(), ext)
+		uploadDir := "./uploads/videos"
+		savePath := fmt.Sprintf("%s/%s", uploadDir, filename)
+
+		// Ensure directory exists
+		if err := os.MkdirAll(uploadDir, os.ModePerm); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create upload directory"})
+			return
+		}
+
+		// Save file
+		if err := c.SaveUploadedFile(file, savePath); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save video file"})
+			return
+		}
+		videoURL = fmt.Sprintf("/uploads/videos/%s", filename)
 	}
 
 	page := models.UmkmPage{
 		OrderID:         req.OrderID,
 		Slug:            req.Slug,
-		VideoURL:        req.VideoURL,
+		VideoURL:        videoURL,
 		Photos:          req.Photos,
 		Description:     req.Description,
 		Price:           req.Price,
