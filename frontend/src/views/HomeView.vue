@@ -239,7 +239,7 @@
             <div class="aspect-video bg-slate-800 relative overflow-hidden">
                <video 
                 v-if="page.video_url" 
-                :src="'http://localhost:8081' + page.video_url" 
+                :src="getVideoUrl(page.video_url)" 
                 class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
                 muted
                 loop
@@ -344,6 +344,14 @@ onMounted(async () => {
 
 function scrollToOrder() {
   document.getElementById('order').scrollIntoView({ behavior: 'smooth' })
+}
+
+function getVideoUrl(path) {
+  if (!path) return ''
+  const baseUrl = api.defaults.baseURL || 'http://localhost:8080/api'
+  // Remove /api from base URL if present to get root URL
+  const rootUrl = baseUrl.replace(/\/api$/, '')
+  return `${rootUrl}${path}`
 }
 
 function selectPackage(packageType) {

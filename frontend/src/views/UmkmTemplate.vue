@@ -37,7 +37,7 @@
             <div class="bg-slate-900/80 backdrop-blur-md rounded-3xl overflow-hidden border border-slate-700 mb-6">
               <video 
                 v-if="umkmPage.video_url" 
-                :src="'http://localhost:8081' + umkmPage.video_url" 
+                :src="getVideoUrl(umkmPage.video_url)" 
                 controls 
                 class="w-full"
                 autoplay
@@ -132,6 +132,14 @@ const slug = route.params.slug
 const umkmPage = ref({})
 const loading = ref(true)
 const error = ref(false)
+
+function getVideoUrl(path) {
+  if (!path) return ''
+  const baseUrl = api.defaults.baseURL || 'http://localhost:8080/api'
+  // Remove /api from base URL if present to get root URL
+  const rootUrl = baseUrl.replace(/\/api$/, '')
+  return `${rootUrl}${path}`
+}
 
 onMounted(async () => {
   try {
