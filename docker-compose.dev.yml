@@ -4,7 +4,7 @@ services:
       context: ./backend
     container_name: seriusbrand-backend-dev
     ports:
-      - "8083:8081" # Map host 8083 to container 8081 (Backend runs on 8081 per verify steps, adjust Dockerfile EXPOSE maybe?)
+      - "8080:8081" # Map host 8080 to container 8081 (standardize on 8080)
     volumes:
       - ./backend/uploads:/app/uploads
     environment:
