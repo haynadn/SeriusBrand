@@ -85,7 +85,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import axios from 'axios'
+import api from '../api'
 
 const route = useRoute()
 const orderId = route.params.id
@@ -113,7 +113,8 @@ async function uploadProof() {
     const formData = new FormData()
     formData.append('payment_proof', selectedFile.value)
     
-    await axios.post(`http://localhost:8080/api/orders/${orderId}/proof`, formData, {
+    // Use the configured api instance (automatically handles base URL)
+    await api.post(`/orders/${orderId}/proof`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
