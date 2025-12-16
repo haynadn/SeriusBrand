@@ -39,6 +39,7 @@
                 v-if="umkmPage.video_url"
                 :src="getVideoUrl(umkmPage.video_url)" 
                 controls 
+                preload="metadata"
                 class="w-full"
               ></video>
               <div v-else class="aspect-video bg-slate-800 flex items-center justify-center">
