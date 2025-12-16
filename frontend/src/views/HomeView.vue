@@ -240,12 +240,8 @@
                <video 
                 v-if="page.video_url" 
                 :src="getVideoUrl(page.video_url)" 
-                class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                muted
-                loop
-                
-                @mouseover="$event.target.play()"
-                @mouseout="$event.target.pause()"
+                class="w-full h-full object-cover"
+                controls
               ></video>
               <div v-else class="w-full h-full flex items-center justify-center text-gray-500">
                 <span>No Video</span>

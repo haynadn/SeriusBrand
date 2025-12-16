@@ -35,14 +35,9 @@
           <!-- Video & Media -->
           <div>
             <div class="bg-slate-900/80 backdrop-blur-md rounded-3xl overflow-hidden border border-slate-700 mb-6">
-              <video 
-                v-if="umkmPage.video_url" 
                 :src="getVideoUrl(umkmPage.video_url)" 
                 controls 
                 class="w-full"
-                autoplay
-                loop
-                muted
               ></video>
               <div v-else class="aspect-video bg-slate-800 flex items-center justify-center">
                 <p class="text-gray-500">Video tidak tersedia</p>
