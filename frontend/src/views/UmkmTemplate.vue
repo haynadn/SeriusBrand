@@ -35,6 +35,7 @@
           <!-- Video & Media -->
           <div>
             <div class="bg-slate-900/80 backdrop-blur-md rounded-3xl overflow-hidden border border-slate-700 mb-6">
+              <video 
                 :src="getVideoUrl(umkmPage.video_url)" 
                 controls 
                 class="w-full"
